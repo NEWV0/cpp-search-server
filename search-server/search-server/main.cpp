@@ -64,13 +64,13 @@ public:
 
     void AddDocument(int document_id, const string& document) {
         const vector<string> words = SplitIntoWordsNoStop(document);
-        const double tf = 1.0 / words.size();
+        const double x = 1.0 / words.size();
 
         for (auto& word : words) {
-            docs_[word][document_id] += tf;
+            docs_[word][document_id] += x;
         }
 
-        document_count_++;
+        ++document_count_;
     }
 
     vector<Document> FindTopDocuments(const string& raw_query) const {
@@ -124,6 +124,13 @@ private:
         return query;
     }
 
+    double CalcIDF(const string& word) const {
+        if (docs_.count(word) > 0) {
+            return log(document_count_ / docs_.at(word).size());
+        }
+        return 0.0;
+    }
+
     vector<Document> FindAllDocuments(const Query& query_words) const {
 
         vector<Document> matched_documents;
@@ -131,16 +138,16 @@ private:
 
         for (const auto& word : query_words.plus_words) {
             if (docs_.count(word) > 0) {
-               double idf = log(document_count_ / docs_.at(word).size());
-                for (const auto& [ id , tf ] : docs_.at(word)) {
-                    rev_docs[id] +=tf*idf;
+                double idf = CalcIDF(word);
+                for (const auto& [id, tf] : docs_.at(word)) {
+                    rev_docs[id] += tf * idf;
                 }
             }
         }
 
         for (const auto& word : query_words.minus_words) {
             if (docs_.count(word) > 0) {
-                for (const auto& [ id , tf ] : docs_.at(word)) {
+                for (const auto& [id, tf] : docs_.at(word)) {
                     rev_docs.erase(id);
                 }
             }
@@ -151,8 +158,6 @@ private:
         }
         return matched_documents;
     }
-
-
 
 };
 
