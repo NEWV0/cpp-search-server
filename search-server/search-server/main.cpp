@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 #include <optional>
+#include <numeric>
 using namespace std;
  
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
@@ -79,10 +80,7 @@ enum class DocumentStatus {
  
 class SearchServer {
 public:
-    inline static constexpr int INVALID_DOCUMENT_ID = -1;
- 
-    
- 
+  
     template <typename StringContainer>
     explicit SearchServer(const StringContainer& stop_words)
         : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
@@ -108,10 +106,8 @@ public:
         throw invalid_argument("Document with this ID already exists");
     }
 
-    vector<string> words;
-    if (!SplitIntoWordsNoStop(document, words)) {
-        throw invalid_argument("Document contains invalid characters");
-    }
+    vector<string> words = SplitIntoWordsNoStop(document);
+    
 
     for (const string& word : words) {
         if (!isValidWord(word)) {
@@ -233,31 +229,29 @@ private:
         return stop_words_.count(word) > 0;
     }
  
-    bool SplitIntoWordsNoStop(const string& text, vector<string>& result) const {
-        for (const string& word : SplitIntoWords(text)) {
-            
-            if (!isValidWord(word)) {
-                return false;
-            }
- 
-            if (!IsStopWord(word)) {
-                result.push_back(word);
-            }
+       vector<string> SplitIntoWordsNoStop(const string& text) const {
+        vector<string> result;
+    
+    for (const string& word : SplitIntoWords(text)) {
+        if (!isValidWord(word)) {
+            throw invalid_argument("Document contains invalid characters");
         }
- 
-        return true;
+
+        if (!IsStopWord(word)) {
+            result.push_back(word);
+        }
+    }
+
+    return result;
     }
  
     static int ComputeAverageRating(const vector<int>& ratings) {
-        if (ratings.empty()) {
-            return 0;
-        }
-        int rating_sum = 0;
-        for (const int rating : ratings) {
-            rating_sum += rating;
-        }
-        return rating_sum / static_cast<int>(ratings.size());
+    if (ratings.empty()) {
+        return 0;
     }
+
+    return accumulate(ratings.begin(), ratings.end(), 0) / static_cast<int>(ratings.size());
+}
  
     struct QueryWord {
         string data;
@@ -266,14 +260,26 @@ private:
     };
  
     QueryWord ParseQueryWord(string text) const {
-        bool is_minus = false;
-        // Word shouldn't be empty
-        if (text[0] == '-') {
-            is_minus = true;
-            text = text.substr(1);
-        }
-        return { text, is_minus, IsStopWord(text) };
+    bool is_minus = false;
+
+    /*
+    if (text.empty()) {
+        throw invalid_argument("Empty word in query");
     }
+    */
+    if (text[0] == '-') {
+        is_minus = true;
+        text = text.substr(1);
+    }
+
+    if (text.empty() || text.find('-') != string::npos || any_of(text.begin(), text.end(), [](char c) {
+        return c >= '\0' && c < ' ';
+    })) {
+        throw invalid_argument("Invalid word in query");
+    }
+
+    return { text, is_minus, IsStopWord(text) };
+}
  
     struct Query {
         set<string> plus_words;
@@ -297,10 +303,6 @@ private:
     }
  
 static bool isValidWord(const string& word) {
- 
-    if (word.size() >= 2 && word.substr(0, 2) == "--") {
-        return false;
-    }
  
     return none_of(word.begin(), word.end(), [](char c) {
         return c >= '\0' && c < ' ';
