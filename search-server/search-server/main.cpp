@@ -120,6 +120,7 @@ public:
         word_to_document_freqs_[word][document_id] += inv_word_count;
     }
     documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status });
+    docsID.push_back(document_id);
 }
  
   template <typename DocumentPredicate>
@@ -205,15 +206,13 @@ vector<Document> FindTopDocuments(const string& raw_query) const {
 }
 
  
-    int GetDocumentId(int index) const {
-    if (index >= documents_.size()) {
-        throw out_of_range("Index is out of range");
-    }
+    int GetDocumentId(int index) const { 
+    if (index >= documents_.size()) { 
+        throw out_of_range("Index is out of range"); 
+    } 
+    return docsID[index];
+} 
 
-    auto it = documents_.begin();
-    advance(it, index);
-    return it->first;
-}
 
  
 private:
@@ -224,6 +223,7 @@ private:
     const set<string> stop_words_;
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
+    vector <int> docsID ; 
  
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
@@ -259,27 +259,25 @@ private:
         bool is_stop;
     };
  
-    QueryWord ParseQueryWord(string text) const {
-    bool is_minus = false;
+    QueryWord ParseQueryWord(string text) const { 
+    bool is_minus = false; 
 
-    /*
-    if (text.empty()) {
-        throw invalid_argument("Empty word in query");
-    }
-    */
-    if (text[0] == '-') {
-        is_minus = true;
-        text = text.substr(1);
-    }
+    if (!text.empty() && text[0] == '-') { 
+        is_minus = true; 
+        text = text.substr(1); 
+    } 
 
-    if (text.empty() || text.find('-') != string::npos || any_of(text.begin(), text.end(), [](char c) {
-        return c >= '\0' && c < ' ';
-    })) {
+    if (!text.empty() && text[0] == '-' ) {
+        throw invalid_argument("Invalid word in query");
+    }
+        
+    if (!isValidWord(text)) {
         throw invalid_argument("Invalid word in query");
     }
 
-    return { text, is_minus, IsStopWord(text) };
+    return { text, is_minus, IsStopWord(text) }; 
 }
+
  
     struct Query {
         set<string> plus_words;
