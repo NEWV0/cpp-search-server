@@ -125,16 +125,14 @@ public:
  
   template <typename DocumentPredicate>
 vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
-    for (const string& word : SplitIntoWords(raw_query)) {
-        if (!isValidWord(word)) {
-            throw invalid_argument("Search query contains invalid characters");
-        }
-    }
-
+    //не могу понять почему без этой проверки не проходит 18 и 19 тест 
+    // добавил ее в метод  ParseQueryWord
+    /*
     size_t minus_position = raw_query.find('-');
     if (minus_position != string::npos && minus_position + 1 == raw_query.size()) {
         throw invalid_argument("Missing text after the minus sign");
     }
+*/
 
     const Query query = ParseQuery(raw_query);
     vector<Document> result = FindAllDocuments(query, document_predicate);
@@ -170,11 +168,7 @@ vector<Document> FindTopDocuments(const string& raw_query) const {
         return documents_.size();
     }
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
-    for (const string& word : SplitIntoWords(raw_query)) {
-        if (!isValidWord(word)) {
-            throw invalid_argument("Search query contains invalid characters");
-        }
-    }
+   
 
     const Query query = ParseQuery(raw_query);
     vector<string> matched_words;
@@ -196,12 +190,15 @@ vector<Document> FindTopDocuments(const string& raw_query) const {
         }
     }
 
-    
+        
+     //не могу понять почему без этой проверки не проходит 18 и 19 тест 
+    // добавил ее в метод  ParseQueryWord
+    /*
     size_t minus_position = raw_query.find('-');
     if (minus_position != string::npos && minus_position + 1 == raw_query.size()) {
         throw invalid_argument("Missing text after the minus sign");
     }
-
+*/
     return make_tuple(matched_words, documents_.at(document_id).status);
 }
 
@@ -259,15 +256,24 @@ private:
         bool is_stop;
     };
  
-    QueryWord ParseQueryWord(string text) const { 
+ QueryWord ParseQueryWord(string text) const { 
     bool is_minus = false; 
 
-    if (!text.empty() && text[0] == '-') { 
+    size_t minus_position = text.find('-');
+    if (minus_position != string::npos && minus_position + 1 == text.size()) {
+        throw invalid_argument("Missing text after the minus sign");
+    }
+
+    if (text.empty()) {
+        throw invalid_argument("Invalid word in query");
+    }
+
+    if (text[0] == '-') { 
         is_minus = true; 
         text = text.substr(1); 
     } 
-
-    if (!text.empty() && text[0] == '-' ) {
+        
+    if (text[0] == '-') {
         throw invalid_argument("Invalid word in query");
     }
         
@@ -277,6 +283,7 @@ private:
 
     return { text, is_minus, IsStopWord(text) }; 
 }
+
 
  
     struct Query {
