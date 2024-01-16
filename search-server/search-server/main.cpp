@@ -120,19 +120,11 @@ public:
         word_to_document_freqs_[word][document_id] += inv_word_count;
     }
     documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status });
-    docsID.push_back(document_id);
+    documents_id.push_back(document_id);
 }
  
   template <typename DocumentPredicate>
 vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
-    //не могу понять почему без этой проверки не проходит 18 и 19 тест 
-    // добавил ее в метод  ParseQueryWord
-    /*
-    size_t minus_position = raw_query.find('-');
-    if (minus_position != string::npos && minus_position + 1 == raw_query.size()) {
-        throw invalid_argument("Missing text after the minus sign");
-    }
-*/
 
     const Query query = ParseQuery(raw_query);
     vector<Document> result = FindAllDocuments(query, document_predicate);
@@ -190,15 +182,6 @@ vector<Document> FindTopDocuments(const string& raw_query) const {
         }
     }
 
-        
-     //не могу понять почему без этой проверки не проходит 18 и 19 тест 
-    // добавил ее в метод  ParseQueryWord
-    /*
-    size_t minus_position = raw_query.find('-');
-    if (minus_position != string::npos && minus_position + 1 == raw_query.size()) {
-        throw invalid_argument("Missing text after the minus sign");
-    }
-*/
     return make_tuple(matched_words, documents_.at(document_id).status);
 }
 
@@ -207,7 +190,7 @@ vector<Document> FindTopDocuments(const string& raw_query) const {
     if (index >= documents_.size()) { 
         throw out_of_range("Index is out of range"); 
     } 
-    return docsID[index];
+    return documents_id.at(index);
 } 
 
 
@@ -220,7 +203,7 @@ private:
     const set<string> stop_words_;
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
-    vector <int> docsID ; 
+    vector <int> documents_id ; 
  
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
@@ -259,20 +242,15 @@ private:
  QueryWord ParseQueryWord(string text) const { 
     bool is_minus = false; 
 
-    size_t minus_position = text.find('-');
-    if (minus_position != string::npos && minus_position + 1 == text.size()) {
-        throw invalid_argument("Missing text after the minus sign");
-    }
-
-    if (text.empty()) {
-        throw invalid_argument("Invalid word in query");
-    }
-
     if (text[0] == '-') { 
         is_minus = true; 
         text = text.substr(1); 
     } 
-        
+     
+     if (text.empty()) {
+        throw invalid_argument("Invalid word in query");
+    }
+     
     if (text[0] == '-') {
         throw invalid_argument("Invalid word in query");
     }
@@ -334,7 +312,7 @@ static bool isValidWord(const string& word) {
                 }
             }
         }
- 
+   
         for (const string& word : query.minus_words) {
             if (word_to_document_freqs_.count(word) == 0) {
                 continue;
