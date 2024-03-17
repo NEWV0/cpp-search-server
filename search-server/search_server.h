@@ -2,6 +2,7 @@
 #include "document.h"
 #include "string_processing.h"
 #include <iostream>
+#include <numeric>
 #include <cmath>
 #include <algorithm>
 #include <map>
@@ -36,11 +37,13 @@ public:
         const auto query = ParseQuery(raw_query);
 
         auto matched_documents = FindAllDocuments(query, document_predicate);
+        constexpr double Comparison = 1e-6;
 
         sort(matched_documents.begin(), matched_documents.end(),
              [](const Document& lhs, const Document& rhs) {
-                 return lhs.relevance > rhs.relevance
-                     || (std::abs(lhs.relevance - rhs.relevance) < 1e-6 && lhs.rating > rhs.rating);
+                 return lhs.relevance > rhs.relevance     
+                || (std::abs(lhs.relevance - rhs.relevance) < Comparison && lhs.rating > rhs.rating);
+
              });
         if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
             matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
